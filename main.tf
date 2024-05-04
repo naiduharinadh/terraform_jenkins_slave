@@ -60,7 +60,7 @@ resource "aws_security_group" "ssh_access" {
 
 
 resource "aws_instance" "os1"{
-     ami = "ami-09ccb67fcbf1d625c"
+     ami = "ami-0ec0514235185af79"
      key_name      = aws_key_pair.my_key_pair.key_name
      instance_type = "t2.micro"
 
