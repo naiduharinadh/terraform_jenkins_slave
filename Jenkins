@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage("get infra code "){
+            steps{
+                git branch: 'main', url: 'https://github.com/naiduharinadh/terraform_jenkins_slave.git'
+            }
+        }
+        stage('terraform - init and start setUp') {
+            steps {
+                script {
+                    sh "sudo terraform init "
+                    sh "sudo terraform apply -auto-approve "
+                    sh 'sudo instance_ip=$(terraform output publicIP)'
+                    //aws configuration details should provide - how to pass the variables 
+                }
+            }
+        }
+        
+        
+        
+        stage('Add Slave Node to Jenkins') {
+            steps {
+                script {
+                    sshagent(credentials: ['aws-sshkey']) {
+                        def node = [
+                            name: 'SlaveNode',
+                            remoteFS: '/home/ec2-user/jenkinsApp',
+                            labels: 'AwsLinuxSlave',
+                            nodeProperties: [
+                                [
+                                    $class: 'SlaveInfo',
+                                    labels: []
+                                ]
+                            ],
+                            launcher: [
+                                $class: 'SSHLauncher',
+                                host: env.instance_ip,
+                                port: 22,
+                                credentialsId: 'aws-sshkey',
+                                javaPath: '/usr/bin/java',
+                                launchTimeoutSeconds: 60,
+                                sshHostKeyVerificationStrategy: [
+                                    $class: 'NonverifyingVerificationStrategy',
+                                    knownHostsFilePath: '/var/lib/jenkins/.ssh/known_hosts'
+                                ]
+                            ]
+                        ]
+                        
+                        // Add the node to Jenkins
+                        Jenkins.instance.addNode(node)
+                    }
+                }
+            }
+        }
+    }
+}
